@@ -1,0 +1,12 @@
+{
+  "generator-sppp": {
+    "appname": "tours",
+    "appdesc": "",
+    "author": "Denis Molodtsov",
+    "siteUrl": "https://jolera365.sharepoint.com/sites/demo",
+    "username": "dmolodtsov@jolera.com",
+    "spRootFolder": "_catalogs/master/tours",
+    "dlRootFolder": "./src",
+    "bowerlibs": []
+  }
+}

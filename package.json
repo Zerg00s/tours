@@ -1,22 +1,24 @@
 {
-  "name": "tourcallout",
+  "name": "tours",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Zerg00s/tours.git"
-  },
-  "keywords": [
-    "tours"
-  ],
   "author": "Denis Molodtsov",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Zerg00s/tours/issues"
-  },
-  "homepage": "https://github.com/Zerg00s/tours#readme"
+  "dependencies": {},
+  "devDependencies": {
+    "gulp": "*",
+    "gulp-spsave": "*",
+    "gulp-watch": "*",
+    "gulp-prompt": "*",
+    "sppull": "*",
+    "path": "*",
+    "sp-live-reload": "*",
+    "through2": "*",
+    "cpass": "*",
+    "jsonfile": "*"
+  }
 }

@@ -1,0 +1,226 @@
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" ></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-scrollTo/2.1.2/jquery.scrollTo.min.js"></script>
+
+<script src="https://jolera365.sharepoint.com/sites/demo/_catalogs/master/tours/app.js"></script>
+
+<!-- 
+    List template is located over here: 
+    https://jolera365.sharepoint.com/sites/demo/_catalogs/lt/Forms/AllItems.aspx
+    https://jolera365.sharepoint.com/sites/demo/_catalogs/lt/Tour%20Steps.stp
+-->
+
+
+<script >
+jQuery(function () {
+    //let checklist = new Checklist('test999', 'descr');
+    //checklist.ensureList();
+});
+</script>
+
+
+<script>
+var checklistTitle = "Tour Check List"
+/**
+ * Create an in-page tour using SharePoint callouts.
+ */
+;(function($) {
+
+    var self = this;
+
+    self.options = {
+        scrollTime: 500, // Milliseconds for scroll animation
+        scrollOffset: -150 // Leave 150px of space above the element that is scrolled to so it isn't right at the top of the browser
+    };
+
+    // Create an array to store the tour step information
+    var tourSteps = [];
+
+    /**
+     * Finds the element on the page to use as the launchPoint for the callout
+     * @param  {String} selector The jQuery selector to use to select the DOM element
+     * @return {Object}          The DOM element that will be used as the callout's launchPoint
+     */
+    self.getLaunchPoint = function(selector) {
+        return $(selector).first()[0];
+    };
+
+    /**
+     * Queries the Tour Steps list to retrieve data about all of the tour steps
+     * @return {Object} jQuery jqXHR object with the item data in JSON format
+     */
+    self.getTourSteps = function() {
+        return $.ajax({
+            url: _spPageContextInfo.webServerRelativeUrl + "/_api/web/lists/getbytitle('Tour Steps')/items?$select=Title,ID,Content,Selector,Step,BeakOrientation&$orderby=Step asc",
+            method: "GET",
+            headers: { "accept": "application/json; odata=verbose" }
+        });
+    };
+
+    /**
+     * Remove all tour callouts on the page
+     */
+    self.endTour = function() {
+        $.each(tourSteps, function(index, step) {
+            var callout = CalloutManager.getFromLaunchPointIfExists(step.launchPoint);
+            CalloutManager.remove(callout);
+        });
+    };
+
+    /**
+     * Displays the callout
+     * @param  {Number} index The index of the step to show from the `tourSteps` array
+     */
+    self.showCallout = function(index) {
+
+        // Don't show callouts if there aren't any tour steps
+        if (tourSteps.length === 0) {
+            return;
+        }
+
+        var step = tourSteps[index];
+
+        // If the launchPoint is inside #s4-workspace, scroll to it
+        if ($(step.launchPoint).closest('#s4-workspace').length !== 0) {
+            $('#s4-workspace').scrollTo(step.launchPoint, self.options.scrollTime, {
+                offset: self.options.scrollOffset
+            });
+        }
+
+        // Otherwise scroll to the top of the page (because the launchPoint should be in the ribbon)
+        else {
+            $('#s4-workspace').animate({
+                scrollTop: 0
+            }, self.options.scrollTime);
+        }
+
+        // TODO: Find a way to reliably open subsequent callouts without setTimout
+        // Show the callout after scrolling has finished
+        setTimeout(function() {
+            CalloutManager.getFromLaunchPointIfExists(step.launchPoint).open();
+        }, self.options.scrollTime);
+    };
+
+    /**
+     * Creates the callout
+     * @param  {Number} index The index of the step to create from the `tourSteps` array
+     */
+    self.createCallout = function(index) {
+
+        // Get the step to create the callout for from the tourSteps array
+        var step = tourSteps[index];
+
+        // Create the callout options
+        var options = {
+            ID: "callout-tour=" + step.ID,
+            title: step.Title + " <span class='ms-core-defaultFont ms-soften'>(" + (index+1) + " of " + tourSteps.length + ")</span>", // Show current step of total steps in title
+            launchPoint: step.launchPoint,
+            content: step.Content,
+            contentWidth: 600, // Set this to your desired width; you could also make this a column in the Tour Steps list
+            beakOrientation: step.BeakOrientation,
+            openOptions: {
+                showCloseButton: false, // This is important so we can control when/how the tour ends using callout actions
+                event: "none"
+            }
+        };
+
+        // Create the callout (note that this does not actually show the callout)
+        var callout = CalloutManager.createNew(options);
+
+        // Create the callout action to go to the previous step in the tour
+        var previousStep = new CalloutAction({
+            text: "Previous",
+            onClickCallback: function() {
+
+                // Close the current callout
+                callout.close();
+
+                // Show the previous callout
+                self.showCallout(index - 1);
+            },
+            isEnabledCallback: function() {
+
+                // Don't enable previousStep for the first step in the tour
+                return index !== 0;
+            }
+        });
+        callout.addAction(previousStep);
+
+        // Create the callout action to go to the next step in the tour
+        var nextStep = new CalloutAction({
+            text: "Next",
+            onClickCallback: function() {
+
+                // Close the current callout
+                callout.close();
+
+                // Show the next callout
+                self.showCallout(index + 1);
+            },
+            isEnabledCallback: function() {
+
+                // Don't enable nextStep for the last step in the tour
+                return index !== tourSteps.length - 1;
+            }
+        });
+        callout.addAction(nextStep);
+
+        // Create the callout action to end the tour
+        var endTour = new CalloutAction({
+            text: "End Tour",
+            onClickCallback: function() {
+                //TODO: Add a list item to the check list
+                let checklist = new Checklist(checklistTitle);
+                checklist.ensureCheckListItem();
+                // Removes all callouts from the page
+                self.endTour();
+            }
+        });
+        callout.addAction(endTour);
+    };
+
+    /**
+     * Load the tour steps, create the callouts, and start the tour
+     */
+    self.init = function() {
+
+        let checklist = new Checklist(checklistTitle);
+        checklist.ensureList().then(function(){
+            checklist.checkItemExists().then(function(checkExists){
+                if(checkExists){
+                    console.log('Tour was already watched');
+                }
+                else{
+                    self.getTourSteps().then(function(data) {
+
+                        // Add each step to the `tourSteps` array
+                        $.each(data.d.results, function(index, step) {
+
+                            // Set the launchpoint for the step
+                            step.launchPoint = self.getLaunchPoint(step.Selector);
+                            if (step.launchPoint) {
+                                tourSteps.push(step);
+                            }
+                        });
+
+                        // Once the `tourSteps` array is created, create each of the callouts.
+                        // The `tourSteps` array must be created first so that when creating each
+                        // callout we know the total # of callouts and can reference the
+                        // next/previous callout for the callout actions
+                        $.each(tourSteps, function(index) {
+                            self.createCallout(index);
+                        });
+
+                        // Show the first callout
+                        self.showCallout(0);
+                    });
+                }
+            });
+        })
+
+
+    };
+
+    SP.SOD.loadMultiple(['strings.js', 'sp.js', 'callout.js'], self.init);
+
+})(jQuery);
+</script>
