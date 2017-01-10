@@ -95,11 +95,11 @@ class Checklist{
      */
     getFormDigest():JQueryPromise<string>{
         return $.ajax({
-            url: _spPageContextInfo.webServerRelativeUrl + "/_api/contextinfo",
-            method: "POST",
-            headers: { "Accept": "application/json; odata=verbose" }
-        }).then(function(data){
-            return data.d.GetContextWebInformation.FormDigestValue;
+                url: _spPageContextInfo.webServerRelativeUrl + "/_api/contextinfo",
+                method: "POST",
+                headers: { "Accept": "application/json; odata=verbose" }
+            }).then(function(data){
+                return data.d.GetContextWebInformation.FormDigestValue;
         });
     }
 
