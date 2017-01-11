@@ -185,6 +185,7 @@ class Checklist {
     }
 }
 jQuery(function () {
+    //Example of use
     //let checklist:Checklist = new Checklist('lala','descr');
     // checklist.ensureList().then(function(){
     //checklist.checkItemExists();
